@@ -1,0 +1,163 @@
+aliases:
+  - &install-environment-requirements
+    run:
+      name: Install environment requirements
+      command: | 
+        sudo apt-get update
+        sudo apt-get install git
+        sudo apt-get install openssh-client
+  - &install-python-requirements
+    run:
+      name: Install python requirements
+      command: | 
+        python3.6 -m venv venv
+        echo "source venv/bin/activate" >> $BASH_ENV
+        . venv/bin/activate
+        pip install setuptools --upgrade
+        pip install -r requirements/test.txt
+  - &test
+    run:
+      name: Tests
+      command: |
+        . venv/bin/activate
+        pytest
+defaults: &defaults
+  docker:
+    - image: circleci/python:3.6.6-stretch-browsers
+    - image: circleci/postgres:9.6-alpine-ram
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_DB: app
+        POSTGRES_PASSWORD: postgres
+version: 2
+jobs:
+  test:
+      <<: *defaults
+      steps:
+        - checkout
+        - setup_remote_docker:
+            docker_layer_caching: true
+        - add_ssh_keys:
+            fingerprints:
+              - "ef:ef:77:6f:de:92:8e:dd:0a:19:62:f9:78:b1:21:74"
+        - <<: *install-environment-requirements
+        - <<: *install-python-requirements
+        - <<: *test
+  build:
+    docker:
+      - image: circleci/python:3.6.6-stretch-browsers
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: "Login in to docker hub"
+          command: docker login --username=$DOCKER_HUB_USER --password=DOCKER_HUB_PASSWORD
+
+      - run:
+          name: "Prepare Environment"
+          command: |
+            if [ ${CIRCLE_BRANCH} == "master" ]
+            then
+              echo "export ENV=production" >> $BASH_ENV
+              echo "export DEBUG=False" >> $BASH_ENV
+            else
+              echo "export ENV=staging" >> $BASH_ENV
+              echo "export DEBUG=False" >> $BASH_ENV
+            fi
+
+            source $BASH_ENV
+            env > .env
+
+      - run:
+          name: "build and push"
+          command: |
+            export COMMIT_TAG="${DOCKER_REPOSITORY}:${CIRCLE_SHA1}-${ENV}"
+            export TAG_LATEST="${DOCKER_REPOSITORY}:latest-${ENV}"
+            docker build -t $TAG_LATEST -t $COMMIT_TAG .
+            docker push $TAG_LATEST
+            docker push $COMMIT_TAG
+  deploy:
+    machine:
+      enabled: true
+    steps:
+      - run:
+          name: "Prepare Environment"
+          command: |
+            if [ ${CIRCLE_BRANCH} == "master" ]
+            then
+              echo "export ENV=production" >> $BASH_ENV
+              echo "export DEBUG=False" >> $BASH_ENV
+            else
+              echo "export ENV=staging" >> $BASH_ENV
+              echo "export DEBUG=False" >> $BASH_ENV
+            fi
+      - run:
+          name: Deploy Over SSH
+          command: |
+            export COMMIT_TAG="${DOCKER_REPOSITORY}:${CIRCLE_SHA1}-${ENV}"
+            export TAG_LATEST="${DOCKER_REPOSITORY}:latest-${ENV}"
+            ssh $SSH_USER_INSTANCE@$SSH_HOST_INSTANCE "cd ~/${CIRCLE_PROJECT_REPONAME} && \
+              git stash && git fetch && git checkout ${CIRCLE_SHA1} && \
+              docker login --username=$DOCKER_HUB_USER --password=DOCKER_HUB_PASSWORD && \
+              sudo docker pull ${COMMIT_TAG} && sudo docker tag ${COMMIT_TAG} ${DOCKER_REPOSITORY}:latest && \
+              sudo DOCKER_REPOSITORY=$DOCKER_REPOSITORY docker-compose -f docker-compose.yml -f docker-compose.deploy.yml up -d"
+
+workflows:
+  version: 2
+  staging:
+    jobs:
+      - test:
+          context: staging
+          filters:
+            branches:
+              only: 
+                - staging
+      - build:
+          context: staging
+          requires:
+            - test
+      - deploy:
+          requires:
+            - build
+          context: staging
+          filters:
+            branches:
+              only: staging
+
+  production:
+    jobs:
+      - test:
+          context: production
+          filters:
+            branches:
+              only: 
+                - master
+
+      - build:
+          context: production
+          requires:
+            - test
+          filters:
+            branches:
+              only: 
+                - master
+
+      - hold:
+          type: approval
+          requires:
+           - build
+          filters:
+            branches:
+              only: 
+                - master
+ 
+      - deploy:
+          context: production
+          requires:
+            - hold
+          filters:
+            branches:
+              only: 
+                - master
