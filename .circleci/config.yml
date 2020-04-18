@@ -51,7 +51,7 @@ jobs:
       - setup_remote_docker
       - run:
           name: "Login in to docker hub"
-          command: docker login --username=$DOCKER_HUB_USER --password=DOCKER_HUB_PASSWORD
+          command: docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASSWORD
 
       - run:
           name: "Prepare Environment"
@@ -98,7 +98,7 @@ jobs:
             export TAG_LATEST="${DOCKER_REPOSITORY}:latest-${ENV}"
             ssh $SSH_USER_INSTANCE@$SSH_HOST_INSTANCE "cd ~/${CIRCLE_PROJECT_REPONAME} && \
               git stash && git fetch && git checkout ${CIRCLE_SHA1} && \
-              docker login --username=$DOCKER_HUB_USER --password=DOCKER_HUB_PASSWORD && \
+              docker login --username=$DOCKER_HUB_USER --password=$DOCKER_HUB_PASSWORD && \
               sudo docker pull ${COMMIT_TAG} && sudo docker tag ${COMMIT_TAG} ${DOCKER_REPOSITORY}:latest && \
               sudo DOCKER_REPOSITORY=$DOCKER_REPOSITORY docker-compose -f docker-compose.yml -f docker-compose.deploy.yml up -d"
 
