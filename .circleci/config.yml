@@ -142,14 +142,14 @@ workflows:
               only: 
                 - master
 
-      - hold:
-          type: approval
-          requires:
-           - build
-          filters:
-            branches:
-              only: 
-                - master
+      # - hold:
+      #     type: approval
+      #     requires:
+      #      - build
+      #     filters:
+      #       branches:
+      #         only: 
+      #           - master
  
       - deploy:
           context: production
