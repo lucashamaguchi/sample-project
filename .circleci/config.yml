@@ -154,7 +154,7 @@ workflows:
       - deploy:
           context: production
           requires:
-            - hold
+            - build
           filters:
             branches:
               only: 
