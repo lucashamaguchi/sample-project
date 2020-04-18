@@ -22,7 +22,7 @@ aliases:
       name: Tests
       command: |
         . venv/bin/activate
-        pytest --cov=./
+        pytest
         codecov --token=$CODECOV_TOKEN
 defaults: &defaults
   docker:
