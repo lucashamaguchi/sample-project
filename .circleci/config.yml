@@ -22,8 +22,8 @@ aliases:
       name: Tests
       command: |
         . venv/bin/activate
-        pytest
-        codecov --token=$CODECOV_TOKEN
+        pytest --cov=./
+        bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
 defaults: &defaults
   docker:
     - image: circleci/python:3.6.6-stretch-browsers
