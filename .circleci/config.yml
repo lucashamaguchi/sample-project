@@ -48,9 +48,7 @@ jobs:
       - image: circleci/python:3.6.6-stretch-browsers
     steps:
       - checkout
-      # - setup_remote_docker:
-      #     docker_layer_caching: true
-
+      - setup_remote_docker
       - run:
           name: "Login in to docker hub"
           command: docker login --username=$DOCKER_HUB_USER --password=DOCKER_HUB_PASSWORD

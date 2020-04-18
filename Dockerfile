@@ -9,8 +9,4 @@ RUN pip install -r requirements.txt
 
 COPY . /app
 
-RUN pytest
-
-EXPOSE 5000
-
 ENTRYPOINT ["sh", "entrypoint.sh"]
