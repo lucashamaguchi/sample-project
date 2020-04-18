@@ -22,12 +22,3 @@ def create_app():
     app.add_url_rule("/environment", "environment", view_func=lambda: envdump.run())
 
     return app
-
-
-if __name__ == "__main__":
-    import os
-    app = create_app()
-    port = os.environ.get('PORT', '5200')
-    host = '0.0.0.0'
-    debug = (True if os.environ.get('DEBUG') == 'True' else False)
-    app.run(host, port, debug)
