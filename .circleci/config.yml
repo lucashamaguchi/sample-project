@@ -14,13 +14,16 @@ aliases:
         echo "source venv/bin/activate" >> $BASH_ENV
         . venv/bin/activate
         pip install setuptools --upgrade
+        pip install codecov
+        pip install pytest-cov
         pip install -r requirements.txt
   - &test
     run:
       name: Tests
       command: |
         . venv/bin/activate
-        pytest
+        pytest --cov=./
+        codecov --token=$CODECOV_TOKEN
 defaults: &defaults
   docker:
     - image: circleci/python:3.6.6-stretch-browsers
